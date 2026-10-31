@@ -1,0 +1,54 @@
+name: Build APK
+on:
+  push:
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - run: npm install
+      - run: npx cap add android
+      - name: Aktifkan cetak laporan
+        run: |
+          cat > android/app/src/main/java/id/karangtaruna/inventaris/MainActivity.java <<'JAVA'
+          package id.karangtaruna.inventaris;
+
+          import android.content.Context;
+          import android.os.Bundle;
+          import android.print.PrintAttributes;
+          import android.print.PrintManager;
+          import android.webkit.JavascriptInterface;
+          import com.getcapacitor.BridgeActivity;
+
+          public class MainActivity extends BridgeActivity {
+            @Override
+            public void onCreate(Bundle savedInstanceState) {
+              super.onCreate(savedInstanceState);
+              getBridge().getWebView().addJavascriptInterface(new Object() {
+                @JavascriptInterface
+                public void print() {
+                  runOnUiThread(new Runnable() {
+                    public void run() {
+                      PrintManager pm = (PrintManager) getSystemService(Context.PRINT_SERVICE);
+                      pm.print("Laporan Inventaris", getBridge().getWebView().createPrintDocumentAdapter("Laporan Inventaris"), new PrintAttributes.Builder().build());
+                    }
+                  });
+                }
+              }, "AndroidPrint");
+            }
+          }
+          JAVA
+      - run: npx cap sync android
+      - run: cd android && chmod +x gradlew && ./gradlew assembleDebug
+      - uses: actions/upload-artifact@v4
+        with:
+          name: inventaris-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
