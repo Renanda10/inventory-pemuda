@@ -1,0 +1,6 @@
+{
+  "appId": "id.karangtaruna.inventaris",
+  "appName": "Inventaris Karang Taruna",
+  "webDir": "www",
+  "server": { "androidScheme": "https" }
+}
